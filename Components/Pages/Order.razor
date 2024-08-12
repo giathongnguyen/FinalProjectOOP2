@@ -1,0 +1,126 @@
+﻿@page "/order"
+@inject IServiceProvider ServiceProvider
+@using MySqlConnector
+
+<a href="/"><img style="width: 100px;" src="restaurant_logo.jpg" alt="restaurant logo" /></a>
+<style>
+    .order-page {
+        padding: 20px;
+    }
+
+    .order-form label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .order-form textarea {
+        width: 100%;
+        height: 100px;
+        margin-top: 5px;
+    }
+
+    .order-form button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-top: 10px;
+    }
+
+        .order-form button:hover {
+            background-color: #0056b3;
+        }
+
+    .success-message {
+        margin-top: 20px;
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .order-table {
+        margin-top: 20px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .order-table th, .order-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        .order-table th {
+            background-color: #f2f2f2;
+        }
+</style>
+
+<div class="order-page">
+    <h1>Place Your Order</h1>
+
+    <div class="order-form">
+        <label for="orderType">Order Type:</label>
+        <select id="orderType" @bind="OrderType">
+            <option>Dine-in</option>
+            <option>Takeout</option>
+            <option>Delivery</option>
+        </select>
+
+        <label for="specialRequests">Special Requests:</label>
+        <textarea id="specialRequests" @bind="SpecialRequests"></textarea>
+
+        <button @onclick="PlaceOrder">Place Order</button>
+    </div>
+
+    @if (OrderPlaced)
+    {
+        <div class="success-message">Order has been placed successfully!</div>
+
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>Order Type</th>
+                    <th>Special Requests</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@OrderType</td>
+                    <td>@SpecialRequests</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private string OrderType { get; set; } = "Dine-in";
+    private string SpecialRequests { get; set; } = "";
+    private bool OrderPlaced { get; set; } = false;
+    private string connectionString = "server=127.0.0.1;user=root;password=password;database=restaurant";
+
+    private async Task PlaceOrder()
+    {
+        try
+        {
+            using var dbConnection = new MySqlConnection(connectionString);
+            await dbConnection.OpenAsync();
+
+            var command = new MySqlCommand("INSERT INTO Orders (OrderType, SpecialRequests) VALUES (@OrderType, @SpecialRequests)", dbConnection);
+            command.Parameters.AddWithValue("@OrderType", OrderType);
+            command.Parameters.AddWithValue("@SpecialRequests", SpecialRequests);
+
+            await command.ExecuteNonQueryAsync();
+            OrderPlaced = true;
+        }
+        catch (MySqlException ex)
+        {
+            Console.Error.WriteLine($"Database error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+}

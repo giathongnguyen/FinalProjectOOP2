@@ -1,0 +1,122 @@
+﻿@page "/reservation"
+@inject IServiceProvider ServiceProvider
+@using MySqlConnector
+
+<a href="/"><img style="width: 100px;" src="restaurant_logo.jpg" alt="restaurant logo" /></a>
+<style>
+    .reservation-page {
+        padding: 20px;
+    }
+
+    .reservation-form label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .reservation-form input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+    }
+
+    .reservation-form button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-top: 10px;
+    }
+
+        .reservation-form button:hover {
+            background-color: #218838;
+        }
+
+    .success-message {
+        margin-top: 20px;
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .reservation-table {
+        margin-top: 20px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .reservation-table th, .reservation-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        .reservation-table th {
+            background-color: #f2f2f2;
+        }
+</style>
+
+<div class="reservation-page">
+    <h1>Make a Reservation</h1>
+
+    <div class="reservation-form">
+        <label for="reservationDateTime">Reservation Date and Time:</label>
+        <input type="datetime-local" id="reservationDateTime" @bind="ReservationDateTime" />
+
+        <label for="numberOfGuests">Number of Guests:</label>
+        <input type="number" id="numberOfGuests" @bind="NumberOfGuests" />
+
+        <button @onclick="MakeReservation">Confirm Reservation</button>
+    </div>
+
+    @if (ReservationMade)
+    {
+        <div class="success-message">Reservation has been made successfully!</div>
+
+        <table class="reservation-table">
+            <thead>
+                <tr>
+                    <th>Reservation Date and Time</th>
+                    <th>Number of Guests</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@ReservationDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@NumberOfGuests</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private DateTime ReservationDateTime { get; set; } = DateTime.Now;
+    private int NumberOfGuests { get; set; } = 1;
+    private bool ReservationMade { get; set; } = false;
+    private string connectionString = "server=127.0.0.1;user=root;password=password;database=restaurant";
+
+    private async Task MakeReservation()
+    {
+        try
+        {
+            using var dbConnection = new MySqlConnection(connectionString);
+            await dbConnection.OpenAsync();
+
+            var command = new MySqlCommand("INSERT INTO Reservations (ReservationDateTime, NumberOfGuests) VALUES (@ReservationDateTime, @NumberOfGuests)", dbConnection);
+            command.Parameters.AddWithValue("@ReservationDateTime", ReservationDateTime);
+            command.Parameters.AddWithValue("@NumberOfGuests", NumberOfGuests);
+
+            await command.ExecuteNonQueryAsync();
+            ReservationMade = true;
+        }
+        catch (MySqlException ex)
+        {
+            Console.Error.WriteLine($"Database error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+}

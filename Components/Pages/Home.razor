@@ -1,0 +1,102 @@
+﻿@page "/"
+@inject IServiceProvider ServiceProvider
+@using MySqlConnector
+
+<a href="/"><img style="width: 100px;" src="restaurant_logo.jpg" alt="restaurant logo" /></a>
+<style>
+    .home-page {
+        text-align: center;
+        margin: 20px;
+    }
+    
+    .highlights {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .highlight-item {
+        margin: 10px 0;
+        font-size: 1.2em;
+        color: #333;
+    }
+
+    .links a {
+        text-decoration: none;
+        color: #007bff;
+        margin: 0 10px;
+    }
+</style>
+
+<div class="home-page">
+    <h1>Welcome to Our Restaurant</h1>
+
+    <p>Enjoy a delightful dining experience with our curated menu highlights.</p>
+
+    <h2>Menu Highlights</h2>
+    <ul class="highlights">
+        @foreach (var item in MenuHighlights)
+        {
+            <li class="highlight-item">@item.Name - @item.Price.ToString("C")</li>
+        }
+    </ul>
+
+    <div class="links">
+        <a href="/menu">Browse Menu</a> | 
+        <a href="/reservation">Make a Reservation</a>
+    </div>
+</div>
+
+@code {
+    private List<MenuItem> MenuHighlights { get; set; } = new List<MenuItem>();
+    private string connectionString = "server=127.0.0.1;user=root;password=password;database=restaurant";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var dbConnection = new MySqlConnection(connectionString);
+            await dbConnection.OpenAsync();
+            await LoadMenuHighlights(dbConnection);
+        }
+        catch (MySqlException ex)
+        {
+            Console.Error.WriteLine($"Database error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+
+    private async Task LoadMenuHighlights(MySqlConnection dbConnection)
+    {
+        try
+        {
+            await using var command = new MySqlCommand("SELECT Name, Price FROM MenuItems WHERE Highlight = 1", dbConnection);
+            await using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                MenuHighlights.Add(new MenuItem
+                {
+                    Name = reader.GetString("Name"),
+                    Price = reader.GetDecimal("Price")
+                });
+            }
+        }
+        catch (MySqlException ex)
+        {
+            Console.Error.WriteLine($"Database error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+
+    private class MenuItem
+    {
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
+}
